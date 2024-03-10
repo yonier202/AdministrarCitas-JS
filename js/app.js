@@ -202,6 +202,7 @@ function agregarCita(e){
     reiniciarObjeto();
 
     //Mostrar el HTML de las citas 
+    //le pasamos todas las citas 
     ui.imprimirCitas(administrarCitas);
 }
 
