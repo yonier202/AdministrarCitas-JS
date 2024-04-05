@@ -7,6 +7,8 @@ import { formulario, mascotaInput, propietarioInput, telefonoInput, fechaInput, 
 export const ui=new UI();
 export const administrarCitas = new Citas(); 
 
+let DB;
+
 export function datosCita(e) {
     // asignacion dinamica atravez del atributo name llenando cada propiedad con su valor
     //las propiedades se tienen que llamar igual que el atributo name 
@@ -44,8 +46,23 @@ export function agregarCita(e){
         //Creando una cita
         administrarCitas.agregarCitas({...citaObj});
 
-        //Mensajea agregado correctamente;
-        ui.imprimirAlerta('Agregado Correctamente');
+        //Insertar Registro en Indexdb
+
+        const transaction = DB.transaction(['citas'], 'readwrite');
+
+        //habilitar objectstore
+        const objectStore = transaction.objectStore('citas');
+
+        //insertar en la bd
+        objectStore.add(citaObj);
+
+        transaction.oncomplete = function (){
+            console.log('Cita Agregada');
+
+            //Mensajea agregado correctamente;
+            ui.imprimirAlerta('Agregado Correctamente');
+        }
+
     }
 
     
@@ -103,4 +120,43 @@ export function cargarEdicion(cita){
 
     formulario.querySelector('button[type="submit"]').textContent = "Guardar Cambios";
     editando.value = true;
+}
+
+export function crearDB(){
+    //crear base de datos
+    const crearDB = window.indexedDB.open('citas',1);
+
+    //si hay error
+    crearDB.onerror = function(){
+        console.log('Hubo un error');
+    };
+
+    //si sale bien
+    crearDB.onsuccess = function(){
+        console.log('Base de datos creada correctamente');
+
+        DB=crearDB.result;
+    
+    
+    };
+
+    //definir el schema
+    crearDB.onupgradeneeded = function(e){
+        const db = e.target.result;
+
+        const objecStore = db.createObjectStore('citas',{
+            keyPath: 'id',
+            autoIncrement: true
+        });
+        //definir todas las mascota
+        objecStore.createIndex('mascota','mascota',{unique: false});
+        objecStore.createIndex('propietario', 'propietario',{unique: false});
+        objecStore.createIndex('telefono', 'telefono',{unique: false});
+        objecStore.createIndex('fecha', 'fecha',{unique: false});
+        objecStore.createIndex('hora', 'hora',{unique: false});
+        objecStore.createIndex('sintomas','sintomas',{unique: false});
+        objecStore.createIndex('id', 'id',{unique: true});
+
+        console.log("DB Creada y Listo");
+    };
 }
