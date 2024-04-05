@@ -7,7 +7,7 @@ import { formulario, mascotaInput, propietarioInput, telefonoInput, fechaInput, 
 export const ui=new UI();
 export const administrarCitas = new Citas(); 
 
-let DB;
+export let DB;
 
 export function datosCita(e) {
     // asignacion dinamica atravez del atributo name llenando cada propiedad con su valor
@@ -34,10 +34,25 @@ export function agregarCita(e){
         //pasar el objeto de la cita
         administrarCitas.editarCitas({...citaObj});
 
-        //texto del boton al estado original
-        formulario.querySelector('button[type="submit"]').textContent = "Crear cita";
-        editando.value = false;
-        ui.imprimirAlerta('Editado correctamente');
+        //Edita en IndexDB
+
+        const transaction = DB.transaction(['citas'], 'readwrite');
+        const objectStore = transaction.objectStore('citas');
+
+        objectStore.put(citaObj)
+
+        transaction.oncomplete = function (){
+            //texto del boton al estado original
+            formulario.querySelector('button[type="submit"]').textContent = "Crear cita";
+            editando.value = false;
+            ui.imprimirAlerta('Editado correctamente');
+        }
+
+        transaction.onerror = function (){
+            console.log("hubo un error");
+        }
+
+        
     }
     else{
         //generar un id unico
@@ -74,7 +89,7 @@ export function agregarCita(e){
 
     //Mostrar el HTML de las citas 
     //le pasamos todas las citas 
-    ui.imprimirCitas(administrarCitas);
+    ui.imprimirCitas();
 }
 
 export function reiniciarObjeto() {
@@ -90,13 +105,24 @@ export function reiniciarObjeto() {
 
 export function eliminarcita(id){
     //elimninar Cita
-    administrarCitas.eliminarcita(id);
+    const transaction = DB.transaction(['citas'], 'readwrite');
+    const objectStore = transaction.objectStore('citas');
 
-    //Mostrar u nmensaje
-    ui.imprimirAlerta('La cita se eliminó correctamente');
+    objectStore.delete(id);
 
-    //refrescar citas
-    ui.imprimirCitas(administrarCitas);
+    transaction.oncomplete = function (){
+        //Mostrar u nmensaje
+        ui.imprimirAlerta('La cita se eliminó correctamente');
+
+         //refrescar citas
+        ui.imprimirCitas();
+    }
+    transaction.onerror = function (){
+        "Hubo un error"
+    }    
+    
+
+   
 }
 
 // carga los datos y el modo edicion 
@@ -136,8 +162,9 @@ export function crearDB(){
         console.log('Base de datos creada correctamente');
 
         DB=crearDB.result;
-    
-    
+        
+        //MOstrar citas al cargar (Pero IndexedDB ya esta listo)
+        ui.imprimirCitas();
     };
 
     //definir el schema
